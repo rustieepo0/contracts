@@ -53,7 +53,7 @@ function CheckReputation(stakerId, threshold)
     return false
 end
 
--- Example function to decrease reputation for incorrect behavior
+-- Function to decrease reputation for incorrect behavior
 function Penalize(stakerId)
     AdjustReputation(stakerId, -20) -- Penalize by reducing reputation by 20 points
 end
@@ -254,8 +254,8 @@ Handlers.add(
         else
             -- Penalize staker for insufficient reputation
             Penalize(message.From)
-            -- Optionally, you can handle the case where the staker's reputation is too low to release the reward
-            -- For example, you could revert the transaction or take other actions.
+            -- Optionally, we can handle the case where the staker's reputation is too low to release the reward
+            -- For example, we could revert the transaction or take other actions.
         end
     end
 )
@@ -311,3 +311,5 @@ Handlers.add(
         ao.send({ Target = message.From, Data = Data })
     end
 )
+
+--UPDATE REP BASED ON TIME DURATION ON THE STAKE PERHAPS.?
