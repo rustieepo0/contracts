@@ -60,6 +60,7 @@ end
 Stakers = Stakers or {}
 
 -- Transfer function
+
 --@param sender string
 --@param recipient string
 --@param quantity Bint
@@ -156,7 +157,6 @@ Handlers.add(
 )
 
 --- Vault
-
 Handlers.add(
     'stake',
     Handlers.utils.hasMatchingTag('Action', 'Stake'),
