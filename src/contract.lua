@@ -1,33 +1,30 @@
+-- Import required modules
 local ao = require('ao')
 local json = require("json")
 
+-- Import custom modules
 local bint = require('.bint')(256)
 local utils = require(".utils")
 
----@type {[string]: string}
+-- Global variables
+--@type {[string]: string}
 Balances = Balances or { [ao.id] = tostring(bint(1e18)) }
-
----@type string
+--@type string
 Name = Name or "Bundler"
-
----@type string
+--@type string
 Ticker = Ticker or "BUN"
-
----@type integer
+--@type integer
 Denomination = Denomination or 18
-
----@type string
+--@type string
 Logo = "SBCCXwwecBlDqRLUjb8dYABExTJXLieawf7m2aBJ-KY"
-
----@type {[string]:{status: string, quantity: string, bundler: string, block: string, transaction: string}}
+--@type {[string]:{status: string, quantity: string, bundler: string, block: string, transaction: string}}
 Uploads = Uploads or {}
-
----@type {id: string, url: string, reputation: integer}[]
+--@type {id: string, url: string, reputation: integer}[]
 Stakers = Stakers or {}
 
 -- Function to adjust staker reputation
----@param stakerId string
----@param adjustment integer
+--@param stakerId string
+--@param adjustment integer
 function AdjustReputation(stakerId, adjustment)
     for i = 1, #Stakers do
         if Stakers[i].id == stakerId then
@@ -40,10 +37,15 @@ function AdjustReputation(stakerId, adjustment)
     end
 end
 
+-- Function to decrease reputation for incorrect behavior
+function Penalize(stakerId)
+    AdjustReputation(stakerId, -20) -- Penalize by reducing reputation by 20 points
+end
+
 -- Function to check staker reputation
----@param stakerId string
----@param threshold integer
----@return boolean
+--@param stakerId string
+--@param threshold integer
+--@return boolean
 function CheckReputation(stakerId, threshold)
     for i = 1, #Stakers do
         if Stakers[i].id == stakerId then
@@ -53,19 +55,15 @@ function CheckReputation(stakerId, threshold)
     return false
 end
 
--- Function to decrease reputation for incorrect behavior
-function Penalize(stakerId)
-    AdjustReputation(stakerId, -20) -- Penalize by reducing reputation by 20 points
-end
-
 -- Update Stakers table structure to include reputation
----@type {id: string, url: string, reputation: integer}[]
+--@type {id: string, url: string, reputation: integer}[]
 Stakers = Stakers or {}
 
----@param sender string
----@param recipient string
----@param quantity Bint
----@param cast unknown
+-- Transfer function
+--@param sender string
+--@param recipient string
+--@param quantity Bint
+--@param cast unknown
 function Transfer(sender, recipient, quantity, cast)
     Balances[sender] = Balances[sender] or tostring(0)
     Balances[recipient] = Balances[recipient] or tostring(0)
@@ -105,8 +103,8 @@ function Transfer(sender, recipient, quantity, cast)
     end
 end
 
----Verify an upload
----@param id string
+-- Verify an upload
+--@param id string
 function GetVerificationMessage(id)
     ao.send({
         Target = ao.id,
@@ -117,12 +115,12 @@ function GetVerificationMessage(id)
     })
 end
 
----Verify an upload
----@param id string
----@return boolean
+-- Verify an upload
+--@param id string
+--@return boolean
 function Verify(id)
     local find = utils.find(
-        ---@param val Message
+        --@param val Message
         function(val)
             return val.Tags["Id"] == id
         end,
@@ -131,7 +129,7 @@ function Verify(id)
     return find ~= nil
 end
 
---- Network
+-- Network Handlers
 Handlers.add(
     'initiate',
     Handlers.utils.hasMatchingTag('Action', 'Initiate'),
@@ -158,6 +156,7 @@ Handlers.add(
 )
 
 --- Vault
+
 Handlers.add(
     'stake',
     Handlers.utils.hasMatchingTag('Action', 'Stake'),
@@ -206,7 +205,6 @@ Handlers.add(
     end
 )
 
----Bundler can release its reward
 Handlers.add(
     'notify',
     Handlers.utils.hasMatchingTag('Action', 'Notify'),
@@ -229,7 +227,8 @@ Handlers.add(
     end
 )
 
----Bundler can release its reward
+--- Bundeler can release its reward
+
 Handlers.add(
     'release',
     Handlers.utils.hasMatchingTag('Action', 'Release'),
@@ -255,7 +254,6 @@ Handlers.add(
             -- Penalize staker for insufficient reputation
             Penalize(message.From)
             -- Optionally, we can handle the case where the staker's reputation is too low to release the reward
-            -- For example, we could revert the transaction or take other actions.
         end
     end
 )
@@ -311,5 +309,3 @@ Handlers.add(
         ao.send({ Target = message.From, Data = Data })
     end
 )
-
---UPDATE REP BASED ON TIME DURATION ON THE STAKE PERHAPS.?
