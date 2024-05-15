@@ -19,17 +19,25 @@ Denomination = Denomination or 18
 Logo = "SBCCXwwecBlDqRLUjb8dYABExTJXLieawf7m2aBJ-KY"
 --@type {[string]:{status: string, quantity: string, bundler: string, block: string, transaction: string}}
 Uploads = Uploads or {}
---@type {id: string, url: string, reputation: integer}[]
+--@type {id: string, url: string, reputation: integer, start_timestamp: integer, end_timestamp: integer}[]
 Stakers = Stakers or {}
 
--- Function to adjust staker reputation
+-- Function to adjust staker reputation based on stake duration
 --@param stakerId string
 --@param adjustment integer
 function AdjustReputation(stakerId, adjustment)
     for i = 1, #Stakers do
         if Stakers[i].id == stakerId then
-            Stakers[i].reputation = Stakers[i].reputation + adjustment
-            -- Ensure reputation is within a certain range (optional)
+            local duration = Stakers[i].end_timestamp - Stakers[i].start_timestamp
+            -- Adjust reputation based on duration (example logic)
+            if duration < 86400 then -- Less than a day
+                Stakers[i].reputation = Stakers[i].reputation - 10 -- Decrease reputation by 10
+            elseif duration >= 86400 and duration < 604800 then -- 1 day to 1 week
+                Stakers[i].reputation = Stakers[i].reputation + 5 -- Increase reputation by 5
+            else
+                Stakers[i].reputation = Stakers[i].reputation + 10 -- Increase reputation by 10 for longer durations
+            end
+            -- For Ensure reputation is within a certain range (can be removed.?)
             Stakers[i].reputation = math.max(0, Stakers[i].reputation)
             Stakers[i].reputation = math.min(1000, Stakers[i].reputation)
             break
@@ -55,12 +63,11 @@ function CheckReputation(stakerId, threshold)
     return false
 end
 
--- Update Stakers table structure to include reputation
---@type {id: string, url: string, reputation: integer}[]
+-- Updated Stakers table structure to include reputation and timestamps
+--@type {id: string, url: string, reputation: integer, start_timestamp: integer, end_timestamp: integer}[]
 Stakers = Stakers or {}
 
 -- Transfer function
-
 --@param sender string
 --@param recipient string
 --@param quantity Bint
@@ -169,8 +176,9 @@ Handlers.add(
         local url = message.Tags.Url;
         assert(url and #url > 0, "Invalid URL")
 
+        local startTimestamp = os.time() -- Record the start timestamp
         Transfer(message.From, ao.id, bint("1000"), false)
-        table.insert(Stakers, { id = message.From, url = url, reputation = 1000 })
+        table.insert(Stakers, { id = message.From, url = url, reputation = 1000, start_timestamp = startTimestamp, end_timestamp = 0 }) -- Include start_timestamp and end_timestamp in the staker entry
     end
 )
 
@@ -185,6 +193,18 @@ Handlers.add(
             end
         end
         assert(pos ~= -1, "Not Staked")
+
+        local startTimestamp = Stakers[pos].start_timestamp
+        local endTimestamp = os.time() -- Record the end timestamp when unstaking
+
+        -- Calculate the duration for which the staker remained staked
+        local duration = endTimestamp - startTimestamp
+
+        -- Update the end timestamp in the Stakers table
+        Stakers[pos].end_timestamp = endTimestamp
+
+        -- Adjust staker reputation based on stake duration
+        AdjustReputation(message.From, duration)
 
         Transfer(ao.id, message.From, bint("1000"), false)
         table.remove(Stakers, pos)
@@ -227,7 +247,7 @@ Handlers.add(
     end
 )
 
---- Bundeler can release its reward
+--- Bundler can release its reward
 
 Handlers.add(
     'release',
